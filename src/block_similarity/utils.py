@@ -31,3 +31,45 @@ def get_last_non_padded_tokens(hidden_states, attention_mask) -> List[torch.Tens
             batch_last_tokens.append(last_token.unsqueeze(0))
         last_non_padded_hidden_states.append(torch.cat(batch_last_tokens, dim=0))
     return last_non_padded_hidden_states
+
+
+def compute_all_layers_similarities(model, tokenizer, dataloader, n_layers_to_skip, max_length, device):
+    """Compute average layer-wise distances in a model and return the minimum and its layer index."""
+    if not tokenizer.pad_token:
+        tokenizer.pad_token = tokenizer.eos_token
+    model.eval()
+    n_hidden_layers = model.config.num_hidden_layers
+
+    # Prepare a list of lists for storing distance values across layers
+    all_blocks_distances = [[] for _ in range(n_hidden_layers - n_layers_to_skip)]
+
+    for batch in tqdm(dataloader):
+        inputs = tokenizer(batch, return_tensors="pt", padding="longest",
+                           max_length=max_length, truncation=True).to(device)
+        with torch.no_grad():
+            outputs = model(**inputs)
+
+        attention_mask = inputs["attention_mask"]
+        hidden_states = outputs.hidden_states
+
+        # We do [1:] to skip the initial embedding layer (input itself),
+        # focusing on the actual hidden layers
+        last_non_padded_hidden_states = get_last_non_padded_tokens(hidden_states, attention_mask)[1:]
+
+        # Compute the distance metrics between the hidden states of each layer
+        distances = compute_block_distances(last_non_padded_hidden_states, n_layers_to_skip)
+
+        for i, blocks_distance in enumerate(distances):
+            all_blocks_distances[i].append(blocks_distance)
+
+    mean_block_distances = [np.mean(block_distances) for block_distances in all_blocks_distances]
+
+    # Obtain the minimum mean distance and its corresponding layer index
+    min_distance = np.min(mean_block_distances)
+    idx_layer_min_distance = np.argmin(mean_block_distances)
+
+    return min_distance, idx_layer_min_distance, mean_block_distances
+
+
+
+
