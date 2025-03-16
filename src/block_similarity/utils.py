@@ -1,7 +1,7 @@
 import torch
 import torch.nn.functional as F
 
-def angular_distance(x_l, x_l_plus_n) -> torch.Tensor:
+def angular_distance(x_l, x_l_plus_n):
     """Compute the angular distance between layer outputs"""
     cosine_similarity = F.cosine_similarity(x_l, x_l_plus_n, dim=1, eps=1e-8)
     return torch.acos(cosine_similarity.clamp(min=-1, max=1)) / torch.pi
@@ -12,14 +12,14 @@ def compute_block_distances(hidden_states, n_layers_to_skip):
     block_distances = []
     n_layers = len(hidden_states)
 
-    for l in range(num_layers - n_layers_to_skip):
+    for l in range(n_layers - n_layers_to_skip):
         block_dist = angular_distance(hidden_states[l], hidden_states[l + n_layers_to_skip]).mean().item()
-        block_distances.append(block_distance)
+        block_distances.append(block_dist)
     
     return block_distances
 
 
-def get_last_non_padded_tokens(hidden_states, attention_mask) -> List[torch.Tensor]:
+def get_last_non_padded_tokens(hidden_states, attention_mask):
     """Get last non-padded tokens for each layer."""
     last_non_padded_hidden_states = []
     for layer in hidden_states:
