@@ -95,13 +95,14 @@ def run_layer_similairities(model_path, model_name, dataset_name, batch_size, ma
 
 
 if __name__ == "__main__":
-    model_path = "facebook/opt-125m"
+    # model_path = "facebook/opt-125m"
+    model_path = "google/gemma-3-1b-it"
     dataset_name = "arcee-ai/sec-data-mini"
-    model_name = "facebook_opt"
+    model_name = "gemma_1b"
 
     batch_size = 64
     max_length = 128
 
-    n_layers_to_skip = 2
+    n_layers_to_skip = 5
 
     run_layer_similairities(model_path, model_name, dataset_name, batch_size, max_length, n_layers_to_skip)
