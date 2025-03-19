@@ -1,0 +1,10 @@
+slices:
+  - sources:
+      - model: google/gemma-3-1b-it
+        layer_range: [0, 5]
+  - sources:
+      - model: google/gemma-3-1b-it
+        layer_range: [11,16]
+            
+merge_method: passthrough
+dtype: bfloat16

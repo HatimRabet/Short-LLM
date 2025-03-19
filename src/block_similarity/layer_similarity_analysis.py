@@ -70,7 +70,7 @@ def run_layer_similairities(model_path, model_name, dataset_name, batch_size, ma
     
     os.makedirs("results/", exist_ok=True)
 
-    with open(f'results/layer_distances_{model_name}.csv', 'w', newline='') as csvfile:
+    with open(f'results/layer_distances_{model_name}_{n_layers_to_skip}.csv', 'w', newline='') as csvfile:
         csvfile.write(f"Analysis of Layer Similarities for {model_name} \n")
         csvfile.write(f"Number of Layers to Skip : {n_layers_to_skip} \n")
         fieldnames = ['block_start', 'block_end', 'average_distance']
@@ -97,7 +97,16 @@ def run_layer_similairities(model_path, model_name, dataset_name, batch_size, ma
 
 
 if __name__ == "__main__":
+    import argparse 
     # model_path = "facebook/opt-125m"
+    model_path = "google/gemma-3-1b-it"
+
+    parser = argparse.ArgumentParser(description="Layer Similarity Analysis")
+    parser.add_argument("--num_layers_skip", type=int, help="Number of layers to skip", default=5)
+
+    args = parser.parse_args()
+
+    # model_path = "mistralai/Mathstral-7B-v0.1"
     model_path = "google/gemma-3-1b-it"
     dataset_name = "arcee-ai/sec-data-mini"
     model_name = "gemma_1b"
@@ -105,6 +114,6 @@ if __name__ == "__main__":
     batch_size = 8
     max_length = 128
 
-    n_layers_to_skip = 5
+    n_layers_to_skip = args.num_layers_skip
 
     run_layer_similairities(model_path, model_name, dataset_name, batch_size, max_length, n_layers_to_skip)
