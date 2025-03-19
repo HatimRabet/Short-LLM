@@ -61,6 +61,8 @@ def run_layer_similairities(model_path, model_name, dataset_name, batch_size, ma
         for i, block_distance in enumerate(block_distances):
             all_distances[i].append(block_distance)
 
+        del block_distances, batch, last_non_padded_hidden_states
+
     average_block_distances = [np.mean(distances) for distances in all_distances]
 
     min_distance = float('inf')  
@@ -100,7 +102,7 @@ if __name__ == "__main__":
     dataset_name = "arcee-ai/sec-data-mini"
     model_name = "gemma_1b"
 
-    batch_size = 64
+    batch_size = 8
     max_length = 128
 
     n_layers_to_skip = 5
