@@ -3,7 +3,7 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 from datasets import load_dataset
 from tqdm import tqdm
 
-MODEL_NAME = "your-aitocausallm-model"  
+
 MAX_LENGTH = 128  # Limit for response length
 
 # Function to format dataset prompts
@@ -30,17 +30,22 @@ FORMATTERS = {
 def generate_answer(prompt, model, tokenizer, device="cuda"):
     inputs = tokenizer(prompt, return_tensors="pt", truncation=True, padding=True).to(device)
     with torch.no_grad():
-        output = model.generate(**inputs, max_length=MAX_LENGTH)
+        output = model.generate(**inputs, max_new_tokens=2)
     return tokenizer.decode(output[0], skip_special_tokens=True)
 
 # Evaluation function
 def evaluate_dataset(dataset_name, model_name, dataset_info, device="cuda"):
     print(f"\nEvaluating {dataset_name.upper()}...")
     model = AutoModelForCausalLM.from_pretrained(model_name).to(device)
+    model.eval()
     tokenizer = AutoTokenizer.from_pretrained(model_name)
 
     # Load dataset
-    dataset = load_dataset(dataset_info["name"], dataset_info["subset"])["test"]
+    if dataset_name == "truthfulqa":
+        dataset = load_dataset(dataset_info["name"], dataset_info["subset"])["validation"]
+
+    else:
+        dataset = load_dataset(dataset_info["name"], dataset_info["subset"])["test"]
     
     # Preprocess dataset
     dataset = dataset.map(lambda x: {"prompt": FORMATTERS[dataset_name](x)})
@@ -49,21 +54,29 @@ def evaluate_dataset(dataset_name, model_name, dataset_info, device="cuda"):
     predictions = []
     ground_truths = []
     for example in tqdm(dataset, desc=f"Processing {dataset_name}"):
+        # print(example)
         prompt = example["prompt"]
         response = generate_answer(prompt, model, tokenizer, device)
+        #print(response, len(response))
         predicted_answer = response.strip().split("\n")[-1]  # Extract last line as answer
-        predictions.append(predicted_answer)
+        #print(predicted_answer)
+        
 
+        answer = ord(predicted_answer[-1]) - ord('A') + 1
+        predictions.append(answer)
+        #print(answer)
         # Ground truth extraction
         if dataset_name == "mmlu":
             ground_truths.append(example["answer"])
+    
+            #print(example["answer"])
         elif dataset_name == "hellaswag":
             ground_truths.append(example["label"])  # The correct answer index
         elif dataset_name == "truthfulqa":
             ground_truths.append(example["mc1_targets"]["labels"].index(1))  # Correct index
 
     # Compute accuracy
-    correct_count = sum([pred == str(gt) for pred, gt in zip(predictions, ground_truths)])
+    correct_count = sum([pred == gt for pred, gt in zip(predictions, ground_truths)])
     accuracy = correct_count / len(ground_truths)
     print(f"{dataset_name.upper()} Accuracy: {accuracy:.2%}")
     return accuracy
@@ -74,7 +87,7 @@ if __name__ == "__main__":
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
     DATASETS = {
-        "mmlu": {"name": "cais/mmlu", "subset": "mathematics"},
+        "mmlu": {"name": "cais/mmlu", "subset": "abstract_algebra"},
         "hellaswag": {"name": "Rowan/hellaswag", "subset": None},
         "truthfulqa": {"name": "truthful_qa", "subset": "multiple_choice"},
     }

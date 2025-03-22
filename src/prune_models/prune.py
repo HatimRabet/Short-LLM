@@ -1,6 +1,6 @@
-OUTPUT_PATH = "./pruned_models"  
+OUTPUT_PATH = "src/prune_models/pruned_models"  
 LORA_MERGE_CACHE = "/tmp"  
-CONFIG_YML = "./prune.yaml"  
+CONFIG_YML = "src/prune_models/prune.yaml"  
 COPY_TOKENIZER = True  
 LAZY_UNPICKLE = False  
 LOW_CPU_MEMORY = False  
