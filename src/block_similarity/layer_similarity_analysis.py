@@ -33,7 +33,8 @@ def run_layer_similairities(model_path, model_name, dataset_name, batch_size, ma
     
     model.eval()
 
-    dataset = datasets.load_dataset(dataset_name, "en", split="train")
+    # dataset = datasets.load_dataset(dataset_name, "en", split="train")
+    dataset = datasets.load_dataset(dataset_name, split="train")
     if dataset_size:
         dataset = dataset.select(range(dataset_size))
     
@@ -160,7 +161,8 @@ if __name__ == "__main__":
 
     # model_path = "mistralai/Mathstral-7B-v0.1"
     model_path = "google/gemma-3-1b-it"
-    dataset_name = "arcee-ai/sec-data-mini"
+    # dataset_name = "arcee-ai/sec-data-mini"
+    dataset_name = "fancyzhx/ag_news"
     model_name = "gemma_1b"
 
     batch_size = 32

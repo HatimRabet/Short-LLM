@@ -6,7 +6,7 @@ import seaborn as sns
 import numpy as np
 
 # Directory containing the CSV files (update this path)
-directory = "results/sec/"
+directory = "results/ag_news/"
 
 # Collect all CSV files, including the main file
 files = [f for f in os.listdir(directory) if f.endswith('.csv')]
@@ -73,5 +73,8 @@ plt.title("Average Layer Distances Across Configurations", fontsize=16)
 plt.xlabel("Number of Layers to Skip", fontsize=16)
 plt.ylabel("Layer Number, l", fontsize=16)
 plt.xticks(rotation=45, ha="right")
+
+plt.savefig(directory+"visualize")
+
 plt.tight_layout()
 plt.show()
