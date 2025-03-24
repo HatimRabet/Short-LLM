@@ -60,8 +60,6 @@ def evaluate_dataset(dataset_name, model_name, dataset_info, device="cuda"):
         #print(response, len(response))
         predicted_answer = response.strip().split("\n")[-1]  # Extract last line as answer
         #print(predicted_answer)
-        
-
         answer = ord(predicted_answer[-1]) - ord('A') + 1
         predictions.append(answer)
         #print(answer)
@@ -108,4 +106,3 @@ if __name__ == "__main__":
     # Run evaluation on all datasets
     results = evaluate_dataset(DATASET_NAME, MODEL_NAME, info, device)
     print("\nFinal Results:", results)
-

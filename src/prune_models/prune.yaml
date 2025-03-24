@@ -1,10 +1,13 @@
-slices:
-  - sources:
-      - model: google/gemma-3-1b-it
-        layer_range: [0, 12]
-  - sources:
-      - model: google/gemma-3-1b-it
-        layer_range: [13,26]
-            
-merge_method: passthrough
 dtype: bfloat16
+merge_method: passthrough
+slices:
+- sources:
+  - layer_range:
+    - 0
+    - 27
+    model: mistralai/Ministral-8B-Instruct-2410
+- sources:
+  - layer_range:
+    - 29
+    - 26
+    model: mistralai/Ministral-8B-Instruct-2410
