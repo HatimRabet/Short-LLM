@@ -1,10 +1,20 @@
 import torch
-from transformers import AutoModelForCausalLM, AutoTokenizer
+import json
+
+from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 from datasets import load_dataset
 from tqdm import tqdm
 
 
+MODEL_NAME = "src/prune_models/pruned_models"
+# MODEL_NAME = "mistralai/Ministral-8B-Instruct-2410"
 MAX_LENGTH = 128  # Limit for response length
+
+
+quantization_config = BitsAndBytesConfig(load_in_4bit=True,
+                                            bnb_4bit_use_double_quant=True,
+                                            bnb_4bit_quant_type="nf4",
+                                            bnb_4bit_compute_dtype=torch.bfloat16) 
 
 # Function to format dataset prompts
 def format_prompt_mmlu(example):
@@ -34,12 +44,25 @@ def generate_answer(prompt, model, tokenizer, device="cuda"):
     return tokenizer.decode(output[0], skip_special_tokens=True)
 
 # Evaluation function
-def evaluate_dataset(dataset_name, model_name, dataset_info, device="cuda"):
-    print(f"\nEvaluating {dataset_name.upper()}...")
-    model = AutoModelForCausalLM.from_pretrained(model_name).to(device)
+def evaluate_dataset(dataset_name, model_name, dataset_info, device="cuda", quantization_config = None):
+    print("Loading model...")
+    if not quantization_config:
+        model = AutoModelForCausalLM.from_pretrained(model_name).to(device)
+    else :
+        model = AutoModelForCausalLM.from_pretrained(
+            model_name, 
+            device_map="auto",
+            quantization_config = quantization_config
+            ).to(device)
     model.eval()
+    
     tokenizer = AutoTokenizer.from_pretrained(model_name)
+    
+    if not tokenizer.pad_token:
+        tokenizer.pad_token = tokenizer.eos_token
 
+
+    
     # Load dataset
     if dataset_name == "truthfulqa":
         dataset = load_dataset(dataset_info["name"], dataset_info["subset"])["validation"]
@@ -53,16 +76,22 @@ def evaluate_dataset(dataset_name, model_name, dataset_info, device="cuda"):
     # Generate model responses
     predictions = []
     ground_truths = []
+    
+    print(f"\nEvaluating {dataset_name.upper()}...")
     for example in tqdm(dataset, desc=f"Processing {dataset_name}"):
         # print(example)
         prompt = example["prompt"]
         response = generate_answer(prompt, model, tokenizer, device)
-        #print(response, len(response))
+        # print("respone :", response, len(response))
         predicted_answer = response.strip().split("\n")[-1]  # Extract last line as answer
-        #print(predicted_answer)
-        answer = ord(predicted_answer[-1]) - ord('A') + 1
+
+        # print("\npredicted ",predicted_answer)
+        predicted_answer = predicted_answer.split(":")[1].strip()[0] 
+        # print(predicted_answer)
+        answer = ord(predicted_answer) - ord('A') + 1
         predictions.append(answer)
-        #print(answer)
+        # print("\norder ",answer)
+
         # Ground truth extraction
         if dataset_name == "mmlu":
             ground_truths.append(example["answer"])
@@ -93,7 +122,7 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(description="Model Evaluation On a Dataset")
-    parser.add_argument("--model_name", type=str, help="Model Name", default="google/gemma-3-1b-it")
+    parser.add_argument("--model_name", type=str, help="Model Name", default=MODEL_NAME)
     parser.add_argument("--dataset_name", type=str, help="Dataset Name", default="mmlu", choices=["mmlu", "hellaswag", "truthfulqa"])
 
     args = parser.parse_args()
@@ -104,5 +133,11 @@ if __name__ == "__main__":
     info = DATASETS[DATASET_NAME]
 
     # Run evaluation on all datasets
-    results = evaluate_dataset(DATASET_NAME, MODEL_NAME, info, device)
-    print("\nFinal Results:", results)
+    results = evaluate_dataset(DATASET_NAME, MODEL_NAME, info, device, quantization_config=quantization_config)
+    # print("\nFinal Results:", results)
+    with open("tmp_results.json", "w") as f:
+        json.dump(results, f)
+
+    
+    torch.cuda.empty_cache()        # 🧹 Clear unreferenced GPU memory
+    torch.cuda.ipc_collect()        # ♻️ Release CUDA inter-process memory (optional but good in notebooks)

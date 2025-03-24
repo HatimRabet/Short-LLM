@@ -1,4 +1,6 @@
 import os
+import json
+import subprocess
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib as mpl
@@ -6,10 +8,13 @@ import seaborn as sns
 import numpy as np
 import re
 import yaml
-from src.prune_models.test_model import evaluate_dataset
+# from src.prune_models.test_model import evaluate_dataset
+# from src.prune_models.prune import prune_from_yaml
+
 import torch
 import argparse
 from tqdm import tqdm
+
 
 CONFIG_YML = "src/prune_models/prune.yaml"
 MODEL_NAME = "mistralai/Ministral-8B-Instruct-2410"
@@ -53,6 +58,7 @@ def evaluate_pruned_models(directory, dataset_name="mmlu", model_name=MODEL_NAME
 
     # Initialize List to Store results
     optimal_end_start = []
+    print(len(files))
 
     for i, file in enumerate(files):
         filepath = os.path.join(directory, file)
@@ -78,7 +84,7 @@ def evaluate_pruned_models(directory, dataset_name="mmlu", model_name=MODEL_NAME
         ]
 
         # Generate the YAML file content
-        yaml_content = generate_yaml(layer_blocks)
+        yaml_content = generate_yaml(layer_blocks, model_name)
 
         # Print or save the content to a file
         print(yaml_content)
@@ -87,19 +93,33 @@ def evaluate_pruned_models(directory, dataset_name="mmlu", model_name=MODEL_NAME
         with open(CONFIG_YML, 'w') as file:
             file.write(yaml_content)
 
-        with open("src/prune_models/prune.py") as script:
-            exec(script.read())
-
+        subprocess.run(["python", "src/prune_models/prune.py"], check=True)
+        # prune_from_yaml()
+        
         # Load Model and Tokenizer
         device = "cuda" if torch.cuda.is_available() else "cpu"
         
         info = DATASETS[dataset_name]
-
+        
         # Run evaluation on all datasets
-        results = evaluate_dataset(dataset_name, PRUNED_MODEL, info, device)
+        # results = evaluate_dataset(dataset_name, PRUNED_MODEL, info, device, quantization_config=quantization_config)
+        subprocess.run([
+            "python", "src/prune_models/test_model.py",
+            "--dataset_name", dataset_name,
+            "--model_name", PRUNED_MODEL,
+        ], check=True)
+        
+        
+        with open("tmp_results.json") as f:
+            results = json.load(f)
+        
         print("\nFinal Results:", results)
 
         performance_res.append(results)
+        
+        torch.cuda.empty_cache()        # 🧹 Clear unreferenced GPU memory
+        torch.cuda.ipc_collect()        # ♻️ Release CUDA inter-process memory (optional but good in notebooks)
+        
     return performance_res
 
 
