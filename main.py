@@ -11,7 +11,7 @@ from src.block_similarity.layer_similarity_analysis import run_layer_similairiti
 if __name__ == "__main__":
     # model_path = "google/gemma-3-1b-it"
     model_path = "mistralai/Ministral-8B-Instruct-2410"
-    model_name = "gemma_4b"
+    model_name = "ministral_8b"
     
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
@@ -36,18 +36,18 @@ if __name__ == "__main__":
     print(len(model.model.layers))
     
     dataset_size = 1000
-    dataset = datasets.load_from_disk("./c4_10k_subset").select(range(5000))
+    dataset = datasets.load_from_disk("./c4_10k_subset").select(range(2500))
     # dataset_name = "gsm8k"
     split = "train"
 
     # dataset = datasets.load_dataset(dataset_name, 'main', split=split)
     
-    batch_size = 8
+    batch_size = 4
     max_length = 128
     
     # run_layer_similairities_2(model, tokenizer, dataset, batch_size, max_length, 2, model_name, device)
     
-    for n_layers_to_skip in range(1, 27):
+    for n_layers_to_skip in range(27, 36):
         print("n = ", n_layers_to_skip, "\n")
         run_layer_similairities_2(model, tokenizer, dataset, batch_size, max_length, n_layers_to_skip, model_name, device)
         
