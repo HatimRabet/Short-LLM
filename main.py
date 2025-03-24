@@ -1,6 +1,7 @@
 import torch
 import datasets
 
+
 from torch.utils.data import DataLoader
 from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 
@@ -8,8 +9,9 @@ from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 from src.block_similarity.layer_similarity_analysis import run_layer_similairities_2
 
 if __name__ == "__main__":
-    model_path = "google/gemma-3-1b-it"
-    model_name = "gemma_1b_reasonning"
+    # model_path = "google/gemma-3-1b-it"
+    model_path = "mistralai/Ministral-8B-Instruct-2410"
+    model_name = "gemma_4b"
     
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
@@ -31,17 +33,19 @@ if __name__ == "__main__":
     
     model.eval()
     
-    dataset_size = 10000
-    # dataset = datasets.load_dataset("allenai/c4", "en", split="train", streaming=True).take(dataset_size)
-    dataset_name = "gsm8k"
+    print(len(model.model.layers))
+    
+    dataset_size = 1000
+    dataset = datasets.load_from_disk("./c4_10k_subset").select(range(5000))
+    # dataset_name = "gsm8k"
     split = "train"
 
-    dataset = datasets.load_dataset(dataset_name, 'main', split=split)
+    # dataset = datasets.load_dataset(dataset_name, 'main', split=split)
     
-    batch_size = 32
+    batch_size = 8
     max_length = 128
     
-    run_layer_similairities_2(model, tokenizer, dataset, batch_size, max_length, 25, model_name, device)
+    # run_layer_similairities_2(model, tokenizer, dataset, batch_size, max_length, 2, model_name, device)
     
     for n_layers_to_skip in range(1, 27):
         print("n = ", n_layers_to_skip, "\n")

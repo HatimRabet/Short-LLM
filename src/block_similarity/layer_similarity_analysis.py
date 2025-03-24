@@ -99,7 +99,7 @@ def run_layer_similairities_2(model, tokenizer, dataset, batch_size, max_length,
     all_distances = [[] for _ in range(model.config.num_hidden_layers - n_layers_to_skip)]
 
     for batch in tqdm(dataloader, desc="Processing Batches"):
-        inputs = tokenizer(batch["question"], return_tensors="pt", padding="longest", max_length=max_length, truncation=True).to(device)
+        inputs = tokenizer(batch["text"], return_tensors="pt", padding="longest", max_length=max_length, truncation=True).to(device)
 
         with torch.no_grad():
             outputs = model(**inputs)
