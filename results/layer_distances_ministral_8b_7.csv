@@ -1,4 +1,4 @@
-Analysis of Layer Similarities for gemma_4b 
+Analysis of Layer Similarities for ministral_8b 
 Number of Layers to Skip : 7 
 block_start,block_end,average_distance
 1,8,0.371151953125
