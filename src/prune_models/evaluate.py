@@ -17,14 +17,14 @@ from tqdm import tqdm
 
 
 CONFIG_YML = "src/prune_models/prune.yaml"
-MODEL_NAME = "mistralai/Ministral-8B-Instruct-2410"
+MODEL_NAME = "google/gemma-3-1b-it"
 PRUNED_MODEL = "src/prune_models/pruned_models"
 
-DATASETS = {
-    "mmlu": {"name": "cais/mmlu", "subset": "abstract_algebra"},
-    "hellaswag": {"name": "Rowan/hellaswag", "subset": None},
-    "truthfulqa": {"name": "truthful_qa", "subset": "multiple_choice"},
-}
+# DATASETS = {
+#     "mmlu": {"name": "cais/mmlu", "subset": "abstract_algebra"},
+#     "hellaswag": {"name": "Rowan/hellaswag", "subset": None},
+#     "truthfulqa": {"name": "truthful_qa", "subset": "multiple_choice"},
+# }
 
 
 # Function to generate slices based on start and end layers
@@ -60,32 +60,31 @@ def evaluate_pruned_models(directory, dataset_name="mmlu", model_name=MODEL_NAME
     optimal_end_start = []
 
     for i, file in enumerate(files):
-        if i >= 14 :
-            filepath = os.path.join(directory, file)
-            with open(filepath, 'r') as f:
-                lines = f.readlines()
-            # Extract average_distance values
-            for line in lines[-1:]:  # Skip header lines
-                if line.startswith("Layer"):
-                    numbers = re.findall(r'\d+', line)
-                    numbers = [int(num) for num in numbers]
-                    optimal_end_start.append({"start layer" : min(numbers[0], numbers[1]), "end layer" : max(numbers[0], numbers[1])})
+        filepath = os.path.join(directory, file)
+        with open(filepath, 'r') as f:
+            lines = f.readlines()
+        # Extract average_distance values
+        for line in lines[-1:]:  # Skip header lines
+            if line.startswith("Layer"):
+                numbers = re.findall(r'\d+', line)
+                numbers = [int(num) for num in numbers]
+                optimal_end_start.append({"start layer" : min(numbers[0], numbers[1]), "end layer" : max(numbers[0], numbers[1])})
 
     print("\n\n Starting evaluation ...")
     performance_res = []
     
-    # print("\n evaluating base model")
-    # subprocess.run([
-    #         "python", "src/prune_models/test_model.py",
-    #         "--dataset_name", dataset_name,
-    #         "--model_name", MODEL_NAME,
-    #     ], check=True)
+    print("\n evaluating base model")
+    subprocess.run([
+            "python", "src/prune_models/test_model.py",
+            "--dataset_name", dataset_name,
+            "--model_name", MODEL_NAME,
+        ], check=True)
         
         
-    # with open("tmp_results.json") as f:
-    #     results = json.load(f)
+    with open("tmp_results.json") as f:
+        results = json.load(f)
         
-    # performance_res.append(results)
+    performance_res.append(results)
     
     print("\n evaluating pruned models")
     for block in optimal_end_start:
@@ -95,7 +94,7 @@ def evaluate_pruned_models(directory, dataset_name="mmlu", model_name=MODEL_NAME
         # Define the start and end layers for each block 
         layer_blocks = [
             (0, start_layer),
-            (end_layer+1, 36)
+            (end_layer+1, 26)
         ]
 
         # Generate the YAML file content
@@ -144,7 +143,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Model Evaluation On a Dataset")
     parser.add_argument("--model_name", type=str, help="Model Name", default=MODEL_NAME)
     parser.add_argument("--dataset_name", type=str, help="Dataset Name", default="mmlu", choices=["mmlu", "hellaswag", "truthfulqa"])
-    parser.add_argument("--directory", type=str, help="Directory containing the CSV files", default="results/mmlu_ministral/")
+    parser.add_argument("--directory", type=str, help="Directory containing the CSV files", default="results/gemma_c4/")
 
     args = parser.parse_args()
 
@@ -175,7 +174,7 @@ if __name__ == "__main__":
 
     # Adding a legend
     ax.legend()
-    plt.savefig(DIRECTORY + "performance")
+    plt.savefig(DIRECTORY + "global_facts_performance")
 
     # Show the plot
     plt.show()

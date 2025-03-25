@@ -6,6 +6,9 @@ from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 from datasets import load_dataset
 from tqdm import tqdm
 
+from src.prune_models.prune_manual import prune_layers
+
+from peft import PeftModel
 
 # MODEL_NAME = "src/prune_models/pruned_models"
 # MODEL_NAME = "mistralai/Ministral-8B-Instruct-2410"
@@ -18,12 +21,11 @@ quantization_config = BitsAndBytesConfig(load_in_4bit=True,
                                             bnb_4bit_quant_type="nf4",
                                             bnb_4bit_compute_dtype=torch.bfloat16) 
 
-
 # Function to format dataset prompts
 def format_prompt_mmlu(example):
     question = example["question"]
     choices = "\n".join([f"{chr(65+i)}. {choice}" for i, choice in enumerate(example["choices"])])
-    return f"Choose the correct answer from the options below.\nQuestion: {question}\n{choices}\nAnswer:"
+    return f"Question: {question}\n{choices}\nAnswer:"
 
 def format_prompt_hellaswag(example):
     return f"Sentence: {example['ctx']}\nOptions: {example['endings']}\nAnswer:"
@@ -43,20 +45,26 @@ FORMATTERS = {
 def generate_answer(prompt, model, tokenizer, device="cuda"):
     inputs = tokenizer(prompt, return_tensors="pt", truncation=True, padding=True).to(device)
     with torch.no_grad():
-        output = model.generate(**inputs, max_new_tokens=2, pad_token_id=tokenizer.pad_token_id)
+        output = model.generate(**inputs, max_new_tokens=50, pad_token_id=tokenizer.pad_token_id, use_cache=False)
     return tokenizer.decode(output[0], skip_special_tokens=True)
 
 # Evaluation function
 def evaluate_dataset(dataset_name, model_name, dataset_info, device="cuda", quantization_config = None):
     print("Loading model...")
     if not quantization_config:
-        model = AutoModelForCausalLM.from_pretrained(model_name)
+        model = AutoModelForCausalLM.from_pretrained(model_name).to(device)
     else :
         model = AutoModelForCausalLM.from_pretrained(
             model_name, 
             device_map="auto",
             quantization_config = quantization_config
-            )
+            ).to(device)
+
+        model = prune_layers(model, 9, 14)
+        # Load the fine-tuned LoRA adapters
+        model = PeftModel.from_pretrained(model, "gemma_pruned_lora_1").to(device)
+
+
     model.eval()
     
     tokenizer = AutoTokenizer.from_pretrained(model_name)
@@ -85,8 +93,9 @@ def evaluate_dataset(dataset_name, model_name, dataset_info, device="cuda", quan
         # print(example)
         prompt = example["prompt"]
         response = generate_answer(prompt, model, tokenizer, device)
-        # print("respone :\n", response)
+        print("respone :\n", response)
         try :
+        
             predicted_answer = response.strip().split("\n")[-1]  # Extract last line as answer
 
             # print("\npredicted ",predicted_answer)
@@ -120,7 +129,7 @@ if __name__ == "__main__":
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
     DATASETS = {
-        "mmlu": {"name": "cais/mmlu", "subset": "abstract_algebra"},
+        "mmlu": {"name": "cais/mmlu", "subset": "global_facts"},
         "hellaswag": {"name": "Rowan/hellaswag", "subset": None},
         "truthfulqa": {"name": "truthful_qa", "subset": "multiple_choice"},
     }

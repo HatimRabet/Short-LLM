@@ -4,10 +4,10 @@ slices:
 - sources:
   - layer_range:
     - 0
-    - 2
-    model: mistralai/Ministral-8B-Instruct-2410
+    - 9
+    model: google/gemma-3-1b-it
 - sources:
   - layer_range:
-    - 29
-    - 36
-    model: mistralai/Ministral-8B-Instruct-2410
+    - 14
+    - 26
+    model: google/gemma-3-1b-it

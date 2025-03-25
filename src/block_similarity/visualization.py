@@ -6,7 +6,7 @@ import seaborn as sns
 import numpy as np
 
 # Directory containing the CSV files (update this path)
-directory = "results/gemma_gsm8k/"
+directory = "results/gemma_c4/"
 
 # Collect all CSV files, including the main file
 files = [f for f in os.listdir(directory) if f.endswith('.csv')]
