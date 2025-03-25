@@ -1,0 +1,13 @@
+dtype: bfloat16
+merge_method: passthrough
+slices:
+- sources:
+  - layer_range:
+    - 0
+    - 9
+    model: google/gemma-3-1b-it
+- sources:
+  - layer_range:
+    - 14
+    - 26
+    model: google/gemma-3-1b-it

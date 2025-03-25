@@ -1,0 +1,15 @@
+Analysis of Layer Similarities for ministral_8b 
+Number of Layers to Skip : 25 
+block_start,block_end,average_distance
+1,26,0.395769140625
+2,27,0.378033984375
+3,28,0.39373046875
+4,29,0.3899390625
+5,30,0.39262109375
+6,31,0.389199609375
+7,32,0.391318359375
+8,33,0.40174296875
+9,34,0.408032421875
+10,35,0.423605078125
+11,36,0.473042578125
+Layer 2 to 27 is the best block to prune.

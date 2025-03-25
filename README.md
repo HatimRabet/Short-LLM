@@ -1,1 +1,1 @@
-# Mini-GPT
+# Short-LLM
