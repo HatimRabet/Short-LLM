@@ -9,3 +9,11 @@ Start Layer: 24, End Layer: 32, Results: 0.18
 Start Layer: 23, End Layer: 32, Results: 0.26
 Start Layer: 22, End Layer: 32, Results: 0.22
 Start Layer: 21, End Layer: 32, Results: 0.28
+Start Layer: 19, End Layer: 31, Results: 0.1
+Start Layer: 18, End Layer: 31, Results: 0.01
+Start Layer: 18, End Layer: 32, Results: 0.01
+Start Layer: 17, End Layer: 32, Results: 0.0
+Start Layer: 16, End Layer: 32, Results: 0.01
+Start Layer: 15, End Layer: 32, Results: 0.03
+Start Layer: 13, End Layer: 31, Results: 0.0
+Start Layer: 13, End Layer: 32, Results: 0.0
