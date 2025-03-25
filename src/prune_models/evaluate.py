@@ -58,7 +58,6 @@ def evaluate_pruned_models(directory, dataset_name="mmlu", model_name=MODEL_NAME
 
     # Initialize List to Store results
     optimal_end_start = []
-    print(len(files))
 
     for i, file in enumerate(files):
         filepath = os.path.join(directory, file)
@@ -73,7 +72,22 @@ def evaluate_pruned_models(directory, dataset_name="mmlu", model_name=MODEL_NAME
 
     print("\n\n Starting evaluation ...")
     performance_res = []
-    for block in tqdm(optimal_end_start):
+    
+    print("\n evaluating base model")
+    subprocess.run([
+            "python", "src/prune_models/test_model.py",
+            "--dataset_name", dataset_name,
+            "--model_name", MODEL_NAME,
+        ], check=True)
+        
+        
+    with open("tmp_results.json") as f:
+        results = json.load(f)
+        
+    performance_res.append(results)
+    
+    print("\n evaluating pruned models")
+    for block in optimal_end_start:
         start_layer = block["start layer"]
         end_layer = block["end layer"]
 
@@ -97,9 +111,9 @@ def evaluate_pruned_models(directory, dataset_name="mmlu", model_name=MODEL_NAME
         # prune_from_yaml()
         
         # Load Model and Tokenizer
-        device = "cuda" if torch.cuda.is_available() else "cpu"
+        # device = "cuda" if torch.cuda.is_available() else "cpu"
         
-        info = DATASETS[dataset_name]
+        # info = DATASETS[dataset_name]
         
         # Run evaluation on all datasets
         # results = evaluate_dataset(dataset_name, PRUNED_MODEL, info, device, quantization_config=quantization_config)
@@ -138,7 +152,7 @@ if __name__ == "__main__":
     DIRECTORY = args.directory
 
     performance = evaluate_pruned_models(DIRECTORY, DATASET_NAME, MODEL_NAME)
-    layers_to_skip = [n+1 for n in range(len(performance))]
+    layers_to_skip = [n for n in range(len(performance))]
 
     # Create a figure and axis object
     fig, ax = plt.subplots()

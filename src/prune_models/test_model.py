@@ -1,13 +1,14 @@
 import torch
 import json
+import os
 
 from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 from datasets import load_dataset
 from tqdm import tqdm
 
 
-MODEL_NAME = "src/prune_models/pruned_models"
-# MODEL_NAME = "mistralai/Ministral-8B-Instruct-2410"
+# MODEL_NAME = "src/prune_models/pruned_models"
+MODEL_NAME = "mistralai/Ministral-8B-Instruct-2410"
 MAX_LENGTH = 128  # Limit for response length
 
 
@@ -40,7 +41,7 @@ FORMATTERS = {
 def generate_answer(prompt, model, tokenizer, device="cuda"):
     inputs = tokenizer(prompt, return_tensors="pt", truncation=True, padding=True).to(device)
     with torch.no_grad():
-        output = model.generate(**inputs, max_new_tokens=2)
+        output = model.generate(**inputs, max_new_tokens=2, pad_token_id=tokenizer.pad_token_id)
     return tokenizer.decode(output[0], skip_special_tokens=True)
 
 # Evaluation function
@@ -82,13 +83,17 @@ def evaluate_dataset(dataset_name, model_name, dataset_info, device="cuda", quan
         # print(example)
         prompt = example["prompt"]
         response = generate_answer(prompt, model, tokenizer, device)
-        # print("respone :", response, len(response))
-        predicted_answer = response.strip().split("\n")[-1]  # Extract last line as answer
+        try :
+        # print("respone :", response)
+            predicted_answer = response.strip().split("\n")[-1]  # Extract last line as answer
 
-        # print("\npredicted ",predicted_answer)
-        predicted_answer = predicted_answer.split(":")[1].strip()[0] 
-        # print(predicted_answer)
-        answer = ord(predicted_answer) - ord('A') + 1
+            # print("\npredicted ",predicted_answer)
+            predicted_answer = predicted_answer.split(":")[1].strip()[0] 
+            # print(predicted_answer)
+            answer = ord(predicted_answer) - ord('A') + 1
+        except :
+            print(response)
+            raise Exception('error foormatting')
         predictions.append(answer)
         # print("\norder ",answer)
 
@@ -135,8 +140,24 @@ if __name__ == "__main__":
     # Run evaluation on all datasets
     results = evaluate_dataset(DATASET_NAME, MODEL_NAME, info, device, quantization_config=quantization_config)
     # print("\nFinal Results:", results)
-    with open("tmp_results.json", "w") as f:
-        json.dump(results, f)
+    results_file = "tmp_results.json"
+
+# Load existing results
+    if os.path.exists(results_file):
+        with open(results_file, "r") as f:
+            try:
+                all_results = json.load(f)
+            except json.JSONDecodeError:
+                all_results = []
+    else:
+        all_results = []
+
+    # Append new result
+    all_results.append(results)
+
+    # Save updated list
+    with open(results_file, "w") as f:
+        json.dump(all_results, f, indent=2)
 
     
     torch.cuda.empty_cache()        # 🧹 Clear unreferenced GPU memory
