@@ -6,7 +6,7 @@ import seaborn as sns
 import numpy as np
 
 # Directory containing the CSV files (update this path)
-directory = "results/mmlu_ministral/"
+directory = "results/gemma_gsm8k/"
 
 # Collect all CSV files, including the main file
 files = [f for f in os.listdir(directory) if f.endswith('.csv')]
@@ -38,7 +38,7 @@ for i, file in enumerate(files):
 
 # Set row labels as blocks (e.g., "1-2", "2-3")
 blocks = [f"{i}-{i+1}" for i in range(1, 26)]
-matrix.index = [i+1 for i in range(35)]
+matrix.index = [i+1 for i in range(25)]
 
 print(matrix)
 

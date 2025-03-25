@@ -92,8 +92,7 @@ def evaluate_dataset(dataset_name, model_name, dataset_info, device="cuda", quan
             # print(predicted_answer)
             answer = ord(predicted_answer) - ord('A') + 1
         except :
-            print(response)
-            raise Exception('error foormatting')
+            answer = -1
         predictions.append(answer)
         # print("\norder ",answer)
 

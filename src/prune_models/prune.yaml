@@ -4,10 +4,10 @@ slices:
 - sources:
   - layer_range:
     - 0
-    - 24
+    - 2
     model: mistralai/Ministral-8B-Instruct-2410
 - sources:
   - layer_range:
-    - 30
+    - 29
     - 36
     model: mistralai/Ministral-8B-Instruct-2410

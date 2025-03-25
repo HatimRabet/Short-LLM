@@ -60,31 +60,32 @@ def evaluate_pruned_models(directory, dataset_name="mmlu", model_name=MODEL_NAME
     optimal_end_start = []
 
     for i, file in enumerate(files):
-        filepath = os.path.join(directory, file)
-        with open(filepath, 'r') as f:
-            lines = f.readlines()
-        # Extract average_distance values
-        for line in lines[-1:]:  # Skip header lines
-            if line.startswith("Layer"):
-                numbers = re.findall(r'\d+', line)
-                numbers = [int(num) for num in numbers]
-                optimal_end_start.append({"start layer" : min(numbers[0], numbers[1]), "end layer" : max(numbers[0], numbers[1])})
+        if i >= 14 :
+            filepath = os.path.join(directory, file)
+            with open(filepath, 'r') as f:
+                lines = f.readlines()
+            # Extract average_distance values
+            for line in lines[-1:]:  # Skip header lines
+                if line.startswith("Layer"):
+                    numbers = re.findall(r'\d+', line)
+                    numbers = [int(num) for num in numbers]
+                    optimal_end_start.append({"start layer" : min(numbers[0], numbers[1]), "end layer" : max(numbers[0], numbers[1])})
 
     print("\n\n Starting evaluation ...")
     performance_res = []
     
-    print("\n evaluating base model")
-    subprocess.run([
-            "python", "src/prune_models/test_model.py",
-            "--dataset_name", dataset_name,
-            "--model_name", MODEL_NAME,
-        ], check=True)
+    # print("\n evaluating base model")
+    # subprocess.run([
+    #         "python", "src/prune_models/test_model.py",
+    #         "--dataset_name", dataset_name,
+    #         "--model_name", MODEL_NAME,
+    #     ], check=True)
         
         
-    with open("tmp_results.json") as f:
-        results = json.load(f)
+    # with open("tmp_results.json") as f:
+    #     results = json.load(f)
         
-    performance_res.append(results)
+    # performance_res.append(results)
     
     print("\n evaluating pruned models")
     for block in optimal_end_start:
@@ -152,6 +153,10 @@ if __name__ == "__main__":
     DIRECTORY = args.directory
 
     performance = evaluate_pruned_models(DIRECTORY, DATASET_NAME, MODEL_NAME)
+    
+    with open("tmp_results.json") as f:
+        performance = json.load(f)
+    
     layers_to_skip = [n for n in range(len(performance))]
 
     # Create a figure and axis object
