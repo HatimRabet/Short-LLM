@@ -1,3 +1,4 @@
 Start Layer: 27, End Layer: 28, Results: 0.19
 Start Layer: 27, End Layer: 29, Results: 0.2
 Start Layer: 27, End Layer: 30, Results: 0.19
+Start Layer: 26, End Layer: 30, Results: 0.18
