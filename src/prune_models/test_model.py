@@ -11,24 +11,37 @@ MODEL_NAME = "src/prune_models/pruned_models"
 MAX_LENGTH = 128  # Limit for response length
 
 
-quantization_config = BitsAndBytesConfig(load_in_4bit=True,
-                                            bnb_4bit_use_double_quant=True,
-                                            bnb_4bit_quant_type="nf4",
-                                            bnb_4bit_compute_dtype=torch.bfloat16) 
+quantization_config = BitsAndBytesConfig(
+    load_in_4bit=True,
+    bnb_4bit_use_double_quant=True,
+    bnb_4bit_quant_type="nf4",
+    bnb_4bit_compute_dtype=torch.bfloat16,
+)
+
 
 # Function to format dataset prompts
 def format_prompt_mmlu(example):
     question = example["question"]
-    choices = "\n".join([f"{chr(65+i)}. {choice}" for i, choice in enumerate(example["choices"])])
+    choices = "\n".join(
+        [f"{chr(65 + i)}. {choice}" for i, choice in enumerate(example["choices"])]
+    )
     return f"Question: {question}\n{choices}\nAnswer:"
+
 
 def format_prompt_hellaswag(example):
     return f"Sentence: {example['ctx']}\nOptions: {example['endings']}\nAnswer:"
 
+
 def format_prompt_truthfulqa(example):
     question = example["question"]
-    choices = "\n".join([f"{i+1}. {choice}" for i, choice in enumerate(example["mc1_targets"]["choices"])])
+    choices = "\n".join(
+        [
+            f"{i + 1}. {choice}"
+            for i, choice in enumerate(example["mc1_targets"]["choices"])
+        ]
+    )
     return f"Question: {question}\n{choices}\nAnswer:"
+
 
 FORMATTERS = {
     "mmlu": format_prompt_mmlu,
@@ -36,71 +49,81 @@ FORMATTERS = {
     "truthfulqa": format_prompt_truthfulqa,
 }
 
+
 # Function to generate model responses
 def generate_answer(prompt, model, tokenizer, device="cuda"):
-    inputs = tokenizer(prompt, return_tensors="pt", truncation=True, padding=True).to(device)
+    inputs = tokenizer(prompt, return_tensors="pt", truncation=True, padding=True).to(
+        device
+    )
     with torch.no_grad():
         output = model.generate(**inputs, max_new_tokens=2)
     return tokenizer.decode(output[0], skip_special_tokens=True)
 
+
 # Evaluation function
-def evaluate_dataset(dataset_name, model_name, dataset_info, device="cuda", quantization_config = None):
+def evaluate_dataset(
+    dataset_name, model_name, dataset_info, device="cuda", quantization_config=None
+):
     print("Loading model...")
     if not quantization_config:
         model = AutoModelForCausalLM.from_pretrained(model_name).to(device)
-    else :
+    else:
         model = AutoModelForCausalLM.from_pretrained(
-            model_name, 
-            device_map="auto",
-            quantization_config = quantization_config
-            ).to(device)
+            model_name, device_map="auto", quantization_config=quantization_config
+        ).to(device)
     model.eval()
-    
+
     tokenizer = AutoTokenizer.from_pretrained(model_name)
-    
+
     if not tokenizer.pad_token:
         tokenizer.pad_token = tokenizer.eos_token
 
-
-    
     # Load dataset
     if dataset_name == "truthfulqa":
-        dataset = load_dataset(dataset_info["name"], dataset_info["subset"])["validation"]
+        dataset = load_dataset(dataset_info["name"], dataset_info["subset"])[
+            "validation"
+        ]
 
     else:
         dataset = load_dataset(dataset_info["name"], dataset_info["subset"])["test"]
-    
+
     # Preprocess dataset
     dataset = dataset.map(lambda x: {"prompt": FORMATTERS[dataset_name](x)})
 
     # Generate model responses
     predictions = []
     ground_truths = []
-    
+
     print(f"\nEvaluating {dataset_name.upper()}...")
     for example in tqdm(dataset, desc=f"Processing {dataset_name}"):
         # print(example)
         prompt = example["prompt"]
         response = generate_answer(prompt, model, tokenizer, device)
-        # print("respone :", response, len(response))
-        predicted_answer = response.strip().split("\n")[-1]  # Extract last line as answer
+        try:
+            # Extract the last line of the response as the predicted answer
+            predicted_answer = response.strip().split("\n")[-1]
 
-        # print("\npredicted ",predicted_answer)
-        predicted_answer = predicted_answer.split(":")[1].strip()[0] 
-        # print(predicted_answer)
-        answer = ord(predicted_answer) - ord('A') + 1
+            # Extract the character after the colon and convert it to an index
+            predicted_answer = predicted_answer.split(":")[1].strip()[0]
+            answer = ord(predicted_answer.upper()) - ord("A") + 1
+        except (IndexError, ValueError):
+            # Handle cases where the response is malformed or missing
+            answer = -1
+
         predictions.append(answer)
         # print("\norder ",answer)
 
         # Ground truth extraction
         if dataset_name == "mmlu":
             ground_truths.append(example["answer"])
-    
-            #print(example["answer"])
+
+            # print(example["answer"])
         elif dataset_name == "hellaswag":
             ground_truths.append(example["label"])  # The correct answer index
         elif dataset_name == "truthfulqa":
-            ground_truths.append(example["mc1_targets"]["labels"].index(1))  # Correct index
+            ground_truths.append(
+                example["mc1_targets"]["labels"].index(1)
+            )  # Correct index
 
     # Compute accuracy
     correct_count = sum([pred == gt for pred, gt in zip(predictions, ground_truths)])
@@ -123,7 +146,13 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Model Evaluation On a Dataset")
     parser.add_argument("--model_name", type=str, help="Model Name", default=MODEL_NAME)
-    parser.add_argument("--dataset_name", type=str, help="Dataset Name", default="mmlu", choices=["mmlu", "hellaswag", "truthfulqa"])
+    parser.add_argument(
+        "--dataset_name",
+        type=str,
+        help="Dataset Name",
+        default="mmlu",
+        choices=["mmlu", "hellaswag", "truthfulqa"],
+    )
 
     args = parser.parse_args()
 
@@ -133,11 +162,12 @@ if __name__ == "__main__":
     info = DATASETS[DATASET_NAME]
 
     # Run evaluation on all datasets
-    results = evaluate_dataset(DATASET_NAME, MODEL_NAME, info, device, quantization_config=quantization_config)
+    results = evaluate_dataset(
+        DATASET_NAME, MODEL_NAME, info, device, quantization_config=quantization_config
+    )
     # print("\nFinal Results:", results)
     with open("tmp_results.json", "w") as f:
         json.dump(results, f)
 
-    
-    torch.cuda.empty_cache()        # 🧹 Clear unreferenced GPU memory
-    torch.cuda.ipc_collect()        # ♻️ Release CUDA inter-process memory (optional but good in notebooks)
+    torch.cuda.empty_cache()  # 🧹 Clear unreferenced GPU memory
+    torch.cuda.ipc_collect()  # ♻️ Release CUDA inter-process memory (optional but good in notebooks)
