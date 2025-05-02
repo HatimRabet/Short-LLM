@@ -1,0 +1,10 @@
+Analysis of Layer Similarities for gemma_1b 
+Number of Layers to Skip : 20 
+block_start,block_end,average_distance
+1,21,0.5032192132411859
+2,22,0.4960475823818109
+3,23,0.48279747596153844
+4,24,0.252864739833734
+5,25,0.20897341997195512
+6,26,0.503196520683093
+Layer 5 to 25 is the best block to prune.
